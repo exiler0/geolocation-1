@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">GeoLocation</string>
+    <string name="provider">Provider:</string>
+    <string name="longitude">Längengrad:</string>
+    <string name="latitude">Breitengrad:</string>
+    <string name="accuracy">Genauigkeit:</string>
+    <string name="not_available">Nicht verfügbar</string>
+    <string name="location_updated_message">Position aktualisiert</string>
+</resources>
