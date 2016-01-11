@@ -1,17 +1,12 @@
 package de.freitag.stefan.android.geolocation;
 
-import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.IntentSender;
-import android.content.pm.PackageManager;
 import android.location.Location;
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -29,6 +24,10 @@ import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.LocationSettingsResult;
 import com.google.android.gms.location.LocationSettingsStates;
 import com.google.android.gms.location.LocationSettingsStatusCodes;
+
+import java.text.DateFormat;
+import java.util.Date;
+import java.util.TimeZone;
 
 import de.freitag.stefan.android.R;
 
@@ -72,6 +71,10 @@ public final class MainActivity extends Activity implements GoogleApiClient.Conn
      */
     private TextView viewAccuracy;
 
+    /**
+     * For displaying the timestamp of the latest location update.
+     */
+    private TextView viewLatestUpdate;
 
     private Listener locListener;
 
@@ -154,6 +157,8 @@ public final class MainActivity extends Activity implements GoogleApiClient.Conn
         assert this.viewProvider != null;
         this.viewAccuracy = (TextView) findViewById(R.id.TextView_Accuracy);
         assert this.viewAccuracy != null;
+        this.viewLatestUpdate = (TextView) findViewById(R.id.TextView_LatestUpdate);
+        assert this.viewLatestUpdate != null;
     }
 
     /**
@@ -161,7 +166,6 @@ public final class MainActivity extends Activity implements GoogleApiClient.Conn
      * LocationServices API.
      */
     private synchronized void buildGoogleApiClient() {
-        Log.i(TAG, "Building GoogleApiClient");
         this.mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
@@ -207,7 +211,6 @@ public final class MainActivity extends Activity implements GoogleApiClient.Conn
     protected void onStop() {
         this.mGoogleApiClient.disconnect();
         super.onStop();
-
     }
 
 
@@ -216,21 +219,16 @@ public final class MainActivity extends Activity implements GoogleApiClient.Conn
      */
     protected LocationRequest createLocationRequest() {
 
-        /**
-         * The desired interval for location updates
-         */
+         //The desired interval for location updates
         final long UPDATE_INTERVAL_IN_MILLISECONDS = 5_000;
 
-        /**
-         * The fastest rate for active location updates.
-         */
+         //The fastest rate for active location updates.
         final long FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS =
                 UPDATE_INTERVAL_IN_MILLISECONDS / 2;
 
         final LocationRequest request = new LocationRequest();
         request.setInterval(UPDATE_INTERVAL_IN_MILLISECONDS);
         request.setFastestInterval(FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS);
-
         request.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         return request;
     }
@@ -245,7 +243,6 @@ public final class MainActivity extends Activity implements GoogleApiClient.Conn
 
     @Override
     public void onConnected(@Nullable Bundle bundle) {
-        Log.i(TAG, "Connected to GoogleApiClient");
         if (mCurrentLocation == null) {
             mCurrentLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
         }
@@ -255,7 +252,6 @@ public final class MainActivity extends Activity implements GoogleApiClient.Conn
 
     @Override
     public void onConnectionSuspended(final int cause) {
-        Log.i(TAG, "Connection suspended");
         this.mGoogleApiClient.connect();
     }
 
@@ -312,6 +308,9 @@ public final class MainActivity extends Activity implements GoogleApiClient.Conn
         this.viewLongitude.setText(longitude);
         this.viewAccuracy.setText(accuracy);
         this.viewProvider.setText(provider);
+
+        final DateFormat dateTimeInstance = DateFormat.getDateTimeInstance();
+        this.viewLatestUpdate.setText(dateTimeInstance.format(new Date()));
 
     }
 }

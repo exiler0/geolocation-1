@@ -5,6 +5,7 @@
     <string name="longitude">Longitude:</string>
     <string name="latitude">Latitude:</string>
     <string name="accuracy">Accuracy:</string>
+    <string name="latestUpdate">Latest Update:</string>
     <string name="not_available">Not available</string>
     <string name="location_updated_message">Location updated</string>
 
