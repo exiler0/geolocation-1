@@ -8,4 +8,6 @@
     <string name="latestUpdate">Letzte Aktualisierung:</string>
     <string name="not_available">Nicht verfügbar</string>
     <string name="location_updated_message">Position aktualisiert</string>
+    <string name="activity">Aktivität:</string>
+    <string name="confidence">Sicherheit:</string>
 </resources>
