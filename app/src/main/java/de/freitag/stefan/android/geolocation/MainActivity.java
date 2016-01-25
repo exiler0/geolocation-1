@@ -1,7 +1,11 @@
 package de.freitag.stefan.android.geolocation;
 
 import android.app.Activity;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.IntentSender;
 import android.location.Location;
 import android.os.Bundle;
@@ -17,6 +21,8 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
+import com.google.android.gms.location.ActivityRecognition;
+import com.google.android.gms.location.ActivityRecognitionApi;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
@@ -36,7 +42,7 @@ public final class MainActivity extends Activity implements GoogleApiClient.Conn
     /**
      * Tag used for logging.
      */
-    private static final String TAG = "geolocation";
+    private static final String TAG = MainActivity.class.getSimpleName();
 
     /**
      * Provides the entry point to Google Play services.
@@ -76,7 +82,13 @@ public final class MainActivity extends Activity implements GoogleApiClient.Conn
      */
     private TextView viewLatestUpdate;
 
+    private TextView viewActivityType;
+
+    private TextView viewActivityConfidence;
+
     private Listener locListener;
+
+    private BroadcastReceiver receiver;
 
     @Override
     public void onCreate(final Bundle savedInstanceState) {
@@ -121,7 +133,23 @@ public final class MainActivity extends Activity implements GoogleApiClient.Conn
             }
         });
 
+        //Broadcast receiver
+        this.receiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                //Add current time
+                int confidence = intent.getIntExtra("confidence", -1);
+                Log.d(TAG, "Confidence: " + confidence);
+                //TODO: Display NA if confidence is unknown.
+                viewActivityConfidence.setText(String.valueOf(confidence));
+                viewActivityType.setText(intent.getStringExtra("activity"));
 
+            }
+        };
+        //Filter the Intent and register broadcast receiver
+        IntentFilter filter = new IntentFilter();
+        filter.addAction("ActivityRecognition");
+        registerReceiver(receiver, filter);
     }
 
     @Override
@@ -159,6 +187,10 @@ public final class MainActivity extends Activity implements GoogleApiClient.Conn
         assert this.viewAccuracy != null;
         this.viewLatestUpdate = (TextView) findViewById(R.id.TextView_LatestUpdate);
         assert this.viewLatestUpdate != null;
+        this.viewActivityType = (TextView) findViewById(R.id.TextView_ActivityType);
+        assert this.viewActivityType != null;
+        this.viewActivityConfidence = (TextView) findViewById(R.id.TextView_ActivityConfidence);
+        assert this.viewActivityConfidence != null;
     }
 
     /**
@@ -170,6 +202,7 @@ public final class MainActivity extends Activity implements GoogleApiClient.Conn
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .addApi(LocationServices.API)
+                .addApi(ActivityRecognition.API)
                 .build();
     }
 
@@ -210,6 +243,7 @@ public final class MainActivity extends Activity implements GoogleApiClient.Conn
     @Override
     protected void onStop() {
         this.mGoogleApiClient.disconnect();
+        unregisterReceiver(receiver);
         super.onStop();
     }
 
@@ -248,6 +282,13 @@ public final class MainActivity extends Activity implements GoogleApiClient.Conn
         }
         this.startLocationUpdates();
 
+        Intent i = new Intent(this, ActivityRecognitionIntentService.class);
+        PendingIntent mActivityRecongPendingIntent = PendingIntent
+                .getService(this, 0, i, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        Log.d(TAG, "connected to ActivityRecognition");
+        ActivityRecognition.ActivityRecognitionApi.requestActivityUpdates(mGoogleApiClient, 0, mActivityRecongPendingIntent);
+
     }
 
     @Override
@@ -260,6 +301,28 @@ public final class MainActivity extends Activity implements GoogleApiClient.Conn
         Log.w(TAG, "Connection failed: ConnectionResult.getErrorCode() = " + result.getErrorCode());
     }
 
+    /**
+     * Update the view components.
+     *
+     * @param longitude
+     * @param latitude
+     * @param accuracy
+     * @param provider
+     */
+    private void updateView(final String longitude, final String latitude, final String accuracy, final String provider) {
+        assert longitude != null;
+        assert latitude != null;
+        assert accuracy != null;
+        assert provider != null;
+        this.viewLatitude.setText(latitude);
+        this.viewLongitude.setText(longitude);
+        this.viewAccuracy.setText(accuracy);
+        this.viewProvider.setText(provider);
+
+        final DateFormat dateTimeInstance = DateFormat.getDateTimeInstance();
+        this.viewLatestUpdate.setText(dateTimeInstance.format(new Date()));
+
+    }
 
     private class Listener implements  LocationListener{
 
@@ -272,9 +335,9 @@ public final class MainActivity extends Activity implements GoogleApiClient.Conn
 
             if (location==null) {
                 latitude = getResources().getText(R.string.not_available).toString();
-                longitude=getResources().getText(R.string.not_available).toString();;
-                accuracy=getResources().getText(R.string.not_available).toString();;
-                provider=getResources().getText(R.string.not_available).toString();;
+                longitude = getResources().getText(R.string.not_available).toString();
+                accuracy = getResources().getText(R.string.not_available).toString();
+                provider = getResources().getText(R.string.not_available).toString();
             } else {
                 final double dLongitude = location.getLongitude();
                 longitude = String.valueOf(dLongitude);
@@ -290,28 +353,6 @@ public final class MainActivity extends Activity implements GoogleApiClient.Conn
             Toast.makeText(MainActivity.this, getResources().getString(R.string.location_updated_message),
                     Toast.LENGTH_SHORT).show();
         }
-    }
-
-    /**
-     * Update the view components.
-     * @param longitude
-     * @param latitude
-     * @param accuracy
-     * @param provider
-     */
-    private void updateView(final String longitude, final String latitude, final String accuracy, final String provider) {
-        assert longitude!=null;
-        assert latitude!=null;
-        assert accuracy!=null;
-        assert provider!=null;
-        this.viewLatitude.setText(latitude);
-        this.viewLongitude.setText(longitude);
-        this.viewAccuracy.setText(accuracy);
-        this.viewProvider.setText(provider);
-
-        final DateFormat dateTimeInstance = DateFormat.getDateTimeInstance();
-        this.viewLatestUpdate.setText(dateTimeInstance.format(new Date()));
-
     }
 }
 
